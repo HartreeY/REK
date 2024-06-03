@@ -5,8 +5,8 @@ default(margin=6Plots.mm)
 
 # Space parameters
 DEF_X_MAX = 100
-DEF_Y_MAX = 20
-DEF_Z_MAX = 20
+DEF_Y_MAX = 10
+DEF_Z_MAX = 10
 
 # Population parameters
 DEF_N_DEMES_STARTFILL = 5
@@ -29,9 +29,9 @@ DEF_MIGR_DIRS = MIGR_DIRS_4
 
 # Expansion parameters
 DEF_X_MAX_BURNIN = 5
-DEF_N_GENS_BURNIN = 5
+DEF_N_GENS_BURNIN = 10
 DEF_X_MAX_EXP = DEF_X_MAX
 DEF_Y_MAX_EXP = DEF_Y_MAX
-DEF_N_GENS_EXP = 15
+DEF_N_GENS_EXP = 20
 DEF_MIGR_MODE = 0
 DEF_DATA_TO_GENERATE = "FP"
