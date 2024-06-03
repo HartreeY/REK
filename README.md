@@ -5,7 +5,7 @@ This set of programs has been used in the study "The evolution of fitness during
 # Main use cases
 To begin using this set of tools, start by install the required package, which should take only around a minute. Access the *programs* folder and run the script *init.jl*.
 
-After installing the required packages, select an appropriate script according to the dimensionality of your required simulation. For example, the *2d.ipynb* script includes a handful of commands for simulating range expansions under different conditions. To run a simple simulation, try running the *rangeexp_axial()* function:
+After installing the required packages, select an appropriate script according to the dimensionality of your required simulation. For example, the *2d_main.ipynb* script includes a handful of commands for simulating range expansions under different conditions. To run a simple simulation, try running the *rangeexp_axial()* function:
 ```
 test, test_stats = rangeexp_axial()
 ```
