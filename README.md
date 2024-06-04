@@ -1,4 +1,4 @@
-# fitness-multiple-dims
+# Range Expansions Kit (REK)
 A set of programs in Julia designed to efficiently simulate range expansions and study their genetics and population dynamics.
 This set of programs has been used in the study "The evolution of fitness during range expansions in multiple dimensions". You can find the preprint at [[https://www.biorxiv.org/content/10.1101/2023.12.29.573608v2]].
 
@@ -11,7 +11,7 @@ Once you have the required packages, you can use the annotated methods of this p
 ## Main use cases
 Include the appropriate script according to the dimensionality of your required simulation and use its methods. For example, the *2d.jl* script includes a handful of commands for simulating range expansions under different conditions. 
 
-To run a simulation once, use one of the following methods: **rangeexp_axial**, **rangeexp_radial**. These output a fixed dictionary that includes statistics and data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
+To run a simulation once, use one of the following methods: **rangeexp_axial**, **rangeexp_radial**. These output a fixed dictionary that includes statistics and expansion data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
 - **F** - **meanf** (*deme-average fitness*)
 - **P** - **pops** (*deme populations*)
 - **S** - **AAsel**, **Aasel** and **aasel** (*deme-average number of homo- and heterozygous selected loci*)
@@ -33,3 +33,5 @@ Dict{String, Any} with 9 entries:
   "AAneu" => NaN
   "stats" => Dict{String, Any}("y_max_burnin"=>10, "x_max"=>100, "migr_dirs"=>[…
 ```
+
+This expansion data can be plotted and worked with. To plot expansion data, REK has unique functions that start with *rek_*.
