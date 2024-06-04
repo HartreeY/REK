@@ -1,5 +1,8 @@
 include("core.jl")
 
+# Simulation functions
+# ------------------------------------------------
+
 @inbounds function muts_by_sel_neu(ms1,ms2,s_sel_coef,h_domin_coef,n_loci,sel_loci=[])
     len = length(ms1)
     muts1s = 0
@@ -184,22 +187,22 @@ end
                 mutate(gamete_mom_ms1,gamete_mom_ms2,pnt_wld_stats["mut_rate"],pnt_wld_stats["n_loci"])
                 mutate(gamete_dad_ms1,gamete_dad_ms2,pnt_wld_stats["mut_rate"],pnt_wld_stats["n_loci"])
 
-                if migr_mode == 0
+                if migr_mode == "4"
                     p_lat = 1
                     p_diag = 0
-                elseif migr_mode == 1
+                elseif migr_mode == "buffon1"
                     p_lat = 2/pi
                     p_diag = 1/pi
-                elseif migr_mode == 2
+                elseif migr_mode == "buffon2"
                     p_lat = 4/3/pi
                     p_diag = 1/3/pi
-                elseif migr_mode == 3
+                elseif migr_mode == "buffon3"
                     p_lat = 0.4244132
                     p_diag = 0.21221
-                elseif migr_mode == 4
+                elseif migr_mode == "8"
                     p_lat = 1/2
                     p_diag = 1/2
-                elseif migr_mode == 5
+                elseif migr_mode == "1/2diag"
                     p_lat = 2/3
                     p_diag = 1/3
                 end
@@ -303,6 +306,45 @@ function fill_random_demes(pnt_wld_ms1,pnt_wld_ms2,pnt_wld_stats,x_max_fill,y_ma
     pnt_wld_stats["n_demes_startfill"] = n_demes_to_fill
 end
 
+"""
+Simulates an axial range expansion, in which a population expands in the positive x direction (after an optional burn-in phase).
+If no world is provided, generates a world and seeds it with ```DEF_N_DEMES_STARTFILL``` demes filled with individuals.
+
+---
+
+```n_gens_burnin```: duration of the burn-in phase, used to reach mutation-selection equilibrium
+
+```n_gens_exp```: duration of the expansion
+
+```x_max_burnin```: the outward x-coordinate bound for migration during burn-in
+
+```x_max_exp```: the outward x-coordinate bound for migration during the expansion
+
+```y_max```: the upper y-coordinate bound (lower bound is always **0** currently)
+
+```migr_mode```: mode of migration. Possible values:
+- **4** - lateral directions only
+- **6** - hexagonal grid
+- **8** - lateral and diagonal
+- **buffon1** - equidistant Buffon-Laplace (see documentation)
+- **buffon2** - uniform Buffon-Laplace
+- **buffon3** - inv.proportional Buffon-Laplace
+
+```data_to_generate```: string of letters representing different data to output. Possible values:
+- **F** - **meanf** (*deme-average fitness*)
+- **P** - **pops** (*deme populations*)
+- **S** - **AAsel**, **Aasel** and **aasel** (*deme-average number of homo- and heterozygous selected loci*)
+- **M** - **AAneu**, **Aaneu** and **aaneu** (*deme-average number of homo- and heterozygous neutral loci*)
+
+```wld_ms1```: world array, if starting from existing world
+
+```wld_ms2```: world array, if starting from existing world
+
+```wld_stats```: world stats Dict, if starting from existing world
+
+---
+
+"""
 function rangeexp_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EXP;x_max_burnin=DEF_X_MAX_BURNIN,x_max_exp=DEF_X_MAX_EXP,y_max=DEF_Y_MAX,migr_mode=DEF_MIGR_MODE,
     data_to_generate=DEF_DATA_TO_GENERATE,wld_ms1=NaN,wld_ms2=NaN,wld_stats=NaN) # expansion along x model 2
 
@@ -347,7 +389,7 @@ function rangeexp_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EX
         end
         wld_ms1,wld_ms2,mean_fitn_next,pops_next,muts_AAsel_next,muts_Aasel_next,muts_aasel_next,muts_AAneu_next,
         muts_Aaneu_next,muts_aaneu_next = build_next_gen(wld_ms1,wld_ms2,wld_stats,meanf_wld,pops_wld,muts_AAsel_wld,muts_Aasel_wld,muts_aasel_wld,muts_AAneu_wld,
-        muts_Aaneu_wld,muts_aaneu_wld;x_max_migr=_x_max_used,y_max_migr=DEF_Y_MAX,migr_mode=0,x_bottleneck=x_max_burnin*2)
+        muts_Aaneu_wld,muts_aaneu_wld;x_max_migr=_x_max_used,y_max_migr=DEF_Y_MAX,migr_mode=migr_mode,x_bottleneck=x_max_burnin*2)
         if occursin("F", data_to_generate)
             meanf_wld = cat(meanf_wld, mean_fitn_next, dims=3)
         end
@@ -389,45 +431,349 @@ function rangeexp_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EX
         "aasel"=>muts_aasel_wld,"AAneu"=>muts_AAneu_wld,"Aaneu"=>muts_Aaneu_wld,"aaneu"=>muts_aaneu_wld)
 end
 
-function re_heatmap(obj,gen_start=1,gen_end=DEF_N_GENS_BURNIN+DEF_N_GENS_EXP,slow_factor=1;clim=:default,log_factor=-1)
+# Plotting functions
+# ------------------------------------------------
+
+"""
+Shows an animated heatmap of ```obj``` from ```gen_start``` to ```gen_end```.
+
+---
+
+```obj```: 2-dimensional array of data by deme
+
+```gen_start```: start generation
+
+```gen_end```: end generation
+
+```slow_factor```: number of animation frames per generation
+
+```clim```: color bounds (Plots.jl's clim parameter)
+
+```log_base```: if not **-1**, color shows log values with this as base
+
+---
+
+"""
+function re_heatmap(obj,gen_start=1,gen_end=DEF_N_GENS_BURNIN+DEF_N_GENS_EXP,slow_factor=1;clim=:default,log_base=-1)
     @gif for i=gen_start:(gen_end*slow_factor-1)
         gen_no = trunc(Int,i/slow_factor)+1
-        if log_factor>0 && log_factor!=1
-            heatmap(log.(log_factor,obj[:,:,gen_no]'),ylabel="Generation $gen_no",size=(1000,250),clim=clim)
+        if log_base>0 && log_base==1
+            heatmap(log.(log_base,obj[:,:,gen_no]'),ylabel="Generation $gen_no",size=(1000,250),clim=clim)
         else
             heatmap(obj[:,:,gen_no]',ylabel="Generation $gen_no",size=(1000,250),clim=clim)
         end
     end
 end
 
-function re_heatmap_pops(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["k_capacity"]),log_factor=-1)
-    re_heatmap(re["pops"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+"""
+Shows population data of ```re``` from ```gen_start``` to ```gen_end```.
+
+---
+
+```re```: range expansion results dictionary
+
+```gen_start```: start generation
+
+```gen_end```: end generation
+
+```slow_factor```: number of animation frames per generation
+
+```clim```: color bounds (Plots.jl's clim parameter)
+
+```log_base```: if not **-1**, color shows log values with this as base
+
+---
+
+"""
+function re_heatmap_pops(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["k_capacity"]),log_base=-1)
+    re_heatmap(re["pops"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_meanf(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,1),log_factor=-1)
-    re_heatmap(re["meanf"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_meanf(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,1),log_base=-1)
+    re_heatmap(re["meanf"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_AAsel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["AAsel"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_AAsel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["AAsel"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_Aasel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["Aasel"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_Aasel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["Aasel"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_aasel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["aasel"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_aasel(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["aasel"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_AAneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["AAneu"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_AAneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["AAneu"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_Aaneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["Aaneu"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_Aaneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["Aaneu"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-function re_heatmap_aaneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_factor=-1)
-    re_heatmap(re["aaneu"],gen_start,gen_end,slow_factor;clim=clim,log_factor=log_factor)
+function re_heatmap_aaneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_factor=1;clim=(0,re["stats"]["n_loci"]-length(re["stats"]["sel_loci"])),log_base=-1)
+    re_heatmap(re["aaneu"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
+
+# Functions pertaining to the expansion front
+# ------------------------------------------------
+
+"""
+Finds the average value of ```obj``` between all demes at the expansion front of ```re```.
+
+---
+
+```re```: range expansion results dictionary
+
+```obj```: 2-dimensional array of data by deme
+
+```leqzero```: if **true**, approach only from one side (i.e. from the positive direction in axial expansions)
+
+```oneside```: if **true**, approach only from one side (i.e. from the positive direction in axial expansions)
+
+```divide```: if **true**, find average
+
+---
+
+"""
+function average_at_front(re,obj="meanf";leqzero=false,oneside=false,divide=true)
+    average_at_front(re[obj],re["stats"]["n_gen"],re["stats"]["x_max"],re["stats"]["y_max"];leqzero=leqzero,oneside=oneside,divide=divide)
+end
+
+function average_at_front(data_array,n_gen,x_max,y_max;leqzero=false,oneside=false,divide=true)
+    front_array = Array{Float64}(undef,0)
+    for j in 1:n_gen
+        sum_total = 0
+        cnt = 0
+        # scanning every y: side 1
+        for _y in 1:y_max
+            frontier_x = x_max
+            while frontier_x != 1 && ((leqzero && data_array[frontier_x,_y,j] <= 0) || (!leqzero && data_array[frontier_x,_y,j] < 0))
+                frontier_x -= 1
+            end
+            if data_array[frontier_x,_y,j]>0
+                sum_total += data_array[frontier_x,_y,j]
+                cnt += 1
+            end
+        end
+        # scanning every y: side 2
+        if !oneside
+            for _y in 1:y_max
+                frontier_x = 1
+                while frontier_x != x_max && ((leqzero && data_array[frontier_x,_y,j] <= 0) || (!leqzero && data_array[frontier_x,_y,j] < 0))
+                    frontier_x += 1
+                end
+                if data_array[frontier_x,_y,j]>0
+                    sum_total += data_array[frontier_x,_y,j]
+                    cnt += 1
+                end
+            end
+        end
+        mean_both_sides_y = sum_total
+        if divide
+            mean_both_sides_y /= cnt
+        end
+
+        if !oneside
+            sum_total = 0
+            cnt = 0
+            # scanning every x: side 1
+            for _x in 1:x_max
+                frontier_y = y_max
+                while frontier_y != 1 && ((leqzero &&  data_array[_x,frontier_y,j] <= 0) || (!leqzero && data_array[_x,frontier_y,j] < 0))
+                    frontier_y -= 1
+                end
+                if data_array[_x,frontier_y,j]>0
+                    sum_total += data_array[_x,frontier_y,j]
+                    cnt += 1
+                end
+            end
+            # scanning every x: side 2
+            for _x in 1:x_max
+                frontier_y = 1
+                while frontier_y != y_max && ((leqzero && data_array[_x,frontier_y,j] <= 0) || (!leqzero && data_array[_x,frontier_y,j] < 0))
+                    frontier_y += 1
+                end
+                if data_array[_x,frontier_y,j]>0
+                    sum_total += data_array[_x,frontier_y,j]
+                    cnt += 1
+                end
+            end
+            if divide
+                mean_both_sides_x = sum_total/cnt
+            end
+            front_array = cat(front_array,(mean_both_sides_x+mean_both_sides_y)/2, dims=1)
+        else
+            front_array = cat(front_array,mean_both_sides_y, dims=1)
+        end
+    end
+    return front_array
+end
+
+"""
+Finds the front array of ```obj``` in ```re```.
+
+---
+
+```re```: range expansion results dictionary
+
+```obj```: 2-dimensional array of data by deme
+
+```oneside```: if **true**, approach only from one side (i.e. from the positive direction in axial expansions)
+
+---
+
+"""
+function front_array(re,obj="meanf";oneside=false)
+    front_array(re[obj],re["stats"]["n_gen"],re["stats"]["x_max"],re["stats"]["y_max"];oneside=oneside)
+end
+
+function front_array(data_array,n_gen,x_max,y_max;oneside=false)
+    front_arr = zeros(x_max,y_max,n_gen)
+    for j in 1:n_gen
+        # scanning every y: side 1
+        for _y in 1:y_max
+            frontier_x = x_max
+            while frontier_x != 1 && data_array[frontier_x,_y,j] < 0
+                frontier_x -= 1
+            end
+            if data_array[frontier_x,_y,j]>0
+                front_arr[frontier_x,_y,j]=data_array[frontier_x,_y,j]
+            end
+        end
+        # scanning every y: side 2
+        if !oneside
+            for _y in 1:y_max
+                frontier_x = 1
+                while frontier_x != x_max && data_array[frontier_x,_y,j] < 0
+                    frontier_x += 1
+                end
+                if data_array[frontier_x,_y,j]>0
+                    front_arr[frontier_x,_y,j]=data_array[frontier_x,_y,j]
+                end
+            end
+        end
+
+        if !oneside
+            # scanning every x: side 1
+            for _x in 1:x_max
+                frontier_y = y_max
+                while frontier_y != 1 && data_array[_x,frontier_y,j] < 0
+                    frontier_y -= 1
+                end
+                if data_array[_x,frontier_y,j]>0
+                    front_arr[_x,frontier_y,j]=data_array[_x,frontier_y,j]
+                end
+            end
+            # scanning every x: side 2
+            for _x in 1:x_max
+                frontier_y = 1
+                while frontier_y != y_max && data_array[_x,frontier_y,j] < 0
+                    frontier_y += 1
+                end
+                if data_array[_x,frontier_y,j]>0
+                    front_arr[_x,frontier_y,j]=data_array[_x,frontier_y,j]
+                end
+            end
+        end
+    end
+    return front_arr
+end
+
+# mean front fitness (or other data)
+"""
+Normalises ```obj``` in ```re``` using the "maximum normalisation" method: after the last burn-in generation, divide by the maximum of each generation.
+
+---
+
+```re```: range expansion results dictionary
+
+```obj```: 2-dimensional array of data by deme
+
+---
+
+"""
+function norm_maximum(re,obj="meanf")
+    norm_maximum(re[obj],re["stats"]["n_gen_burnin"],re["stats"]["n_gen_exp"])
+end
+
+function norm_maximum(data_array,n_gen_burnin,n_gen_exp)
+    normal_array = copy(data_array)
+    for j in 1:n_gen_exp
+        gen_max = maximum(data_array[:,:,n_gen_burnin+j])
+        normal_array[:,:,n_gen_burnin+j] /= gen_max
+    end
+    return normal_array
+end
+
+"""
+Normalises ```obj``` in ```re``` using the "maximum normalisation" method: after the last burn-in generation, divide by the constant value of average fitness over all demes at the (last burn-in generation+1)=onset generation
+
+---
+
+```re```: range expansion results dictionary
+
+```obj```: 2-dimensional array of data by deme
+
+```offset``` - offset from the onset generation
+
+---
+
+"""
+function norm_onset_mean(re::Dict,obj::String="meanf",offset=0)
+    norm_onset_mean(re[obj],re["stats"]["n_gen_burnin"],offset=offset)
+end
+
+function norm_onset_mean(data_array::Array,n_gen_burnin::Int,offset=0)
+    normal_array = copy(data_array)
+
+    sum = 0
+    count = 0
+    for u in data_array[:,:,n_gen_burnin+1+offset]
+        if u > 0
+            sum += u
+            count += 1
+        end
+    end
+    gen_average = sum/count
+
+    normal_array[:,:,n_gen_burnin+1:end] /= gen_average
+    return normal_array
+end
+
+#= function normalise_front_by_onset_mean(average_1d_array)
+    normal_array = copy(average_1d_array)
+    normal_array[BURN_IN_GEN_N+1:end] /= average_1d_array[BURN_IN_GEN_N+1]
+    return normal_array
+end
+
+function normalise_front_by_max(average_1d_array,meanf_array)
+    normal_array = copy(average_1d_array)
+    for j in 1:(TOTAL_GEN_N-BURN_IN_GEN_N)
+        gen_max = maximum(meanf_array[:,:,BURN_IN_GEN_N+j])
+        normal_array[BURN_IN_GEN_N+j] /= gen_max
+    end
+    return normal_array
+end
+
+function find_front_array_muts(data_array,muts_array;oneside=false)
+    res_muts = zeros(Float32,y_max,n_gen)
+    for j in 1:n_gen
+        # scanning every y: side 1
+
+        for _y in 1:y_max
+            frontier_x = x_max
+            while frontier_x != 1 && data_array[frontier_x,_y,j] < 0
+                frontier_x -= 1
+            end
+            if data_array[frontier_x,_y,j]>0
+                res_muts[_y,j]=muts_array[frontier_x,_y,j]
+            end
+        end
+        # scanning every y: side 2
+        # add later
+    end
+    return res_muts
+end =#
