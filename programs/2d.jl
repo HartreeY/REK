@@ -47,8 +47,8 @@ function muts_by_sel_neu(ms1,ms2,s_sel_coef,h_domin_coef,n_loci,sel_loci=[])
         muts2s += muts_Aa_sel
         muts1ns += muts_AA_neu
         muts2ns += muts_Aa_neu
-        muts3s = length(sel_loci) - muts_AA_sel - muts_Aa_sel
-        muts3ns = n_loci - length(sel_loci) - muts_AA_neu - muts_Aa_neu
+        muts3s += length(sel_loci) - muts_AA_sel - muts_Aa_sel
+        muts3ns += n_loci - length(sel_loci) - muts_AA_neu - muts_Aa_neu
     end
 
     muts1s /= len
@@ -260,16 +260,17 @@ end
     return wld_ms1_next,wld_ms2_next,mean_fitn_next, pops_next, muts_AAsel_next, muts_Aasel_next, muts_aasel_next, muts_AAneu_next, muts_Aaneu_next, muts_aaneu_next
 end
 
-function create_empty_world(x_max=DEF_X_MAX,y_max=DEF_Y_MAX;k_capacity=DEF_K_CAPACITY,r_prolif_rate=DEF_R_PROLIF_RATE,n_loci=DEF_N_LOCI,n_sel_loci=DEF_N_SEL_LOCI,
+function create_empty_world(x_max=DEF_X_MAX,y_max=DEF_Y_MAX;name=Dates.format(Dates.now(), dateformat"yyyy-mm-dd_HH-MM-SS"),k_capacity=DEF_K_CAPACITY,
+    r_prolif_rate=DEF_R_PROLIF_RATE,n_loci=DEF_N_LOCI,n_sel_loci=DEF_N_SEL_LOCI,
     mut_rate=DEF_MUT_RATE,migr_rate=DEF_MIGR_RATE,migr_dirs=DEF_MIGR_DIRS,s_sel_coef=DEF_S_SEL_COEF,h_domin_coef=DEF_H_DOMIN_COEF,prop_of_del_muts=DEF_PROP_OF_DEL_MUTS)
 
     wld_ms1 = Array{Array{Array{Bool}}}(undef,x_max,y_max) # array of left (in a pair) monosomes ("ms") of all individuals in space
     wld_ms2 = Array{Array{Array{Bool}}}(undef,x_max,y_max) # array of right (in a pair) monosomes ("ms") of all individuals in space
 
     wld_stats = Dict(
+        "name" => name,
         "x_max" => x_max,
         "y_max" => y_max,
-
         "k_capacity" => k_capacity,
         "r_prolif_rate" => r_prolif_rate,
         "n_loci" => n_loci,
@@ -329,6 +330,7 @@ If no world is provided, generates a world and seeds it with ```DEF_N_DEMES_STAR
 - **4** - lateral directions only
 - **6** - hexagonal grid
 - **8** - lateral and diagonal
+- **diag1/2** - lateral and half-weighted diagonal
 - **buffon1** - equidistant Buffon-Laplace (see documentation)
 - **buffon2** - uniform Buffon-Laplace
 - **buffon3** - inv.proportional Buffon-Laplace
@@ -785,3 +787,70 @@ function find_front_array_muts(data_array,muts_array;oneside=false)
     end
     return res_muts
 end =#
+
+vc(x) = cat(eachslice(x, dims=4)...,dims=2)
+
+function re_get_avrel(data::Array,x,gen,denom)
+    nd = ndims(data)
+    if nd==4
+        return mean(vc(data)[x,:,gen])/denom
+    elseif nd==3
+        return mean(data[x,:,gen])/denom
+    else
+        println("Wrong data type.")
+    end
+end
+function re_get_avrel(re::Dict,dataname::String,x,gen=Int(re["stats"]["n_gens"]);sel=true)
+    denom = sel ? re["stats"]["n_sel_loci"] : re["stats"]["n_loci"]-re["stats"]["n_sel_loci"]
+    return re_get_avrel(re[dataname],x,gen,denom)
+end
+function re_get_avrelAAsel(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"AAsel",x,gen;sel=true)
+end
+function re_get_avrelAasel(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"Aasel",x,gen;sel=true)
+end
+function re_get_avrelaasel(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"aasel",x,gen;sel=true)
+end
+function re_get_avrelAAneu(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"AAneu",x,gen;sel=false)
+end
+function re_get_avrelAaneu(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"Aaneu",x,gen;sel=false)
+end
+function re_get_avrelaaneu(re::Dict,x,gen=re["stats"]["n_gens"])
+    return re_get_avrel(re,"aaneu",x,gen;sel=false)
+end
+
+function re_plot_avrelselneu(re::Dict,dataname::String,x_range=(1:Int(re["stats"]["x_max"]));x_scale_factor=1,sel=true,overlay=false)
+    nd = ndims(re[dataname*"sel"])
+    if nd==4
+        data1 = vc(re[dataname*"sel"])
+        data2 = vc(re[dataname*"neu"])
+    else
+        data1 = re[dataname*"sel"]
+        data2 = re[dataname*"neu"]
+    end
+    t = [re_get_avrel(data1,j,Int(re["stats"]["n_gens"]),re["stats"]["n_sel_loci"]) for j in x_range]
+    t2 = [re_get_avrel(data2,j,Int(re["stats"]["n_gens"]),re["stats"]["n_loci"]-re["stats"]["n_sel_loci"]) for j in x_range]
+
+    if haskey(re["stats"],"name")
+        lbl1 = re["stats"]["name"]*"[selected $dataname]"
+        lbl2 = re["stats"]["name"]*"[neutral $dataname]"
+    else
+        lbl1 = "selected $dataname"
+        lbl2 = "neutral $dataname"
+    end
+
+    if overlay
+        plot!(x_range*x_scale_factor,t,label=lbl1,xlabel="x")
+    else
+        plot(x_range*x_scale_factor,t,label=lbl1,xlabel="x")
+    end
+    plot!(x_range*x_scale_factor,t2,label=lbl2)
+end
+
+function re_plot_avrelselneu!(re::Dict,dataname::String,x_range=(1:Int(re["stats"]["x_max"]));x_scale_factor=1,sel=true,overlay=false)
+    re_plot_avrelselneu(re,dataname,x_range;x_scale_factor=x_scale_factor,sel=sel,overlay=true)
+end
