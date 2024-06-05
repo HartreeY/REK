@@ -90,9 +90,8 @@ end
     x_max_migr=NaN,y_max_migr=NaN,migr_mode=0,x_bottleneck=NaN,refl_walls=false)
 
     # Determine the number of offspring for each deme
-    next_gen_pops = zeros(Int16,pnt_wld_stats["x_max"],pnt_wld_stats["y_max"])
     next_gen_posits = []
-    fill!(next_gen_pops,-1)
+    next_gen_pops = fill(NaN,pnt_wld_stats["x_max"],pnt_wld_stats["y_max"])
     for x in 1:pnt_wld_stats["x_max"],y in 1:pnt_wld_stats["y_max"]
         if isassigned(pnt_wld_ms1,x,y) && length(pnt_wld_ms1[x,y])>0
             n_ppl_at_deme = length(pnt_wld_ms1[x,y])
@@ -352,8 +351,8 @@ If starting from existing world, also provide:
 ---
 
 """
-function rangeexp_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EXP;x_max_burnin=DEF_X_MAX_BURNIN,x_max_exp=DEF_X_MAX_EXP,y_max=DEF_Y_MAX,migr_mode=DEF_MIGR_MODE,
-    data_to_generate=DEF_DATA_TO_GENERATE,wld_ms1=NaN,wld_ms2=NaN,wld_stats=NaN) # expansion along x model 2
+function rangeexp_fin_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EXP;x_max_burnin=DEF_X_MAX_BURNIN,x_max_exp=DEF_X_MAX_EXP,y_max=DEF_Y_MAX,migr_mode=DEF_MIGR_MODE,
+    data_to_generate=DEF_DATA_TO_GENERATE,wld_ms1=NaN,wld_ms2=NaN,wld_stats=NaN,name=Dates.format(Dates.now(), dateformat"yyyy-mm-dd_HH-MM-SS")) # expansion along x model 2
 
     meanf_wld = NaN
     pops_wld = NaN
@@ -366,7 +365,7 @@ function rangeexp_axial(n_gens_burnin=DEF_N_GENS_BURNIN,n_gens_exp=DEF_N_GENS_EX
 
     if !(wld_ms1 isa Array{Float32, 3})
         #println("No world provided. Creating a new world.")
-        wld_ms1,wld_ms2,wld_stats = create_empty_world(x_max_exp,y_max)
+        wld_ms1,wld_ms2,wld_stats = create_empty_world(x_max_exp,y_max;name=name)
         fill_random_demes(wld_ms1,wld_ms2,wld_stats,Int(x_max_exp/20),y_max)
     end
 
@@ -446,7 +445,7 @@ Shows an animated heatmap of ```obj``` from ```gen_start``` to ```gen_end```.
 
 ---
 
-```obj```: 2-dimensional array of data by deme
+```obj```: 3-dimensional array of 2d by-deme data + time 
 
 ```gen_start```: start generation
 
@@ -527,8 +526,16 @@ function re_heatmap_aaneu(re,gen_start=1,gen_end=re["stats"]["n_gens"],slow_fact
     re_heatmap(re["aaneu"],gen_start,gen_end,slow_factor;clim=clim,log_base=log_base)
 end
 
-# Functions pertaining to the expansion front
+# Functions pertaining to averaging and expansion front
 # ------------------------------------------------
+
+function average_all(data,n_gens,x_max,y_max;leqzero=false,divide=true)
+    res = Array{Float64}(undef,0)
+    for j in 1:n_gens
+        push!(res,mean(skipmissing(data[:,:,j])))
+    end
+    return res
+end
 
 """
 Finds the average value of ```obj``` between all demes at the expansion front of ```re```.
@@ -537,7 +544,7 @@ Finds the average value of ```obj``` between all demes at the expansion front of
 
 ```re```: range expansion results dictionary
 
-```obj```: 2-dimensional array of data by deme
+```obj```: 3-dimensional array of 2d by-deme data + time 
 
 ```leqzero```: if **true**, approach only from one side (i.e. from the positive direction in axial expansions)
 
@@ -629,7 +636,7 @@ Finds the front array of ```obj``` in ```re```.
 
 ```re```: range expansion results dictionary
 
-```obj```: 2-dimensional array of data by deme
+```obj```: 3-dimensional array of 2d by-deme data + time 
 
 ```oneside```: if **true**, approach only from one side (i.e. from the positive direction in axial expansions)
 
@@ -700,7 +707,7 @@ Normalises ```obj``` in ```re``` using the "maximum normalisation" method: after
 
 ```re```: range expansion results dictionary
 
-```obj```: 2-dimensional array of data by deme
+```obj```: 3-dimensional array of 2d by-deme data + time 
 
 ---
 
@@ -725,7 +732,7 @@ Normalises ```obj``` in ```re``` using the "maximum normalisation" method: after
 
 ```re```: range expansion results dictionary
 
-```obj```: 2-dimensional array of data by deme
+```obj```: 3-dimensional array of 2d by-deme data + time 
 
 ```offset``` - offset from the onset generation
 
@@ -854,3 +861,5 @@ end
 function re_plot_avrelselneu!(re::Dict,dataname::String,x_range=(1:Int(re["stats"]["x_max"]));x_scale_factor=1,sel=true,overlay=false)
     re_plot_avrelselneu(re,dataname,x_range;x_scale_factor=x_scale_factor,sel=sel,overlay=true)
 end
+
+println("2d.jl successfully loaded.")
