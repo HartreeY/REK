@@ -1,4 +1,4 @@
-# Range Expansions Kit (REK)
+# Range Expansions Simulation Kit (RESK)
 A set of programs in Julia designed to efficiently simulate range expansions and study their genetics and population dynamics.
 This set of programs has been used in the study "The evolution of fitness during range expansions in multiple dimensions". You can find the preprint at [[https://www.biorxiv.org/content/10.1101/2023.12.29.573608v2]].
 
@@ -39,4 +39,4 @@ This expansion data can be plotted and worked with. To plot expansion data, use 
 re_heatmap_AAsel(test; log_factor=1.02)
 ```
 will output the average number of selected homozygous mutant loci for in a deme:
-![alt text](https://github.com/HartreeY/REK/blob/main/animations/readme0.gif?raw=true)
+![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme0.gif?raw=true)
