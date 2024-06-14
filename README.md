@@ -9,16 +9,16 @@ To begin using this set of tools, you need to have Julia 1.9+ installed, along w
 Once you have the required packages, you can use the annotated methods of this package on your own, or you can follow one of several examples in the *programs* folder.
 
 ## Main use cases
-Include the appropriate script according to the dimensionality of your required simulation and use its methods. For example, the *2d.jl* script includes a handful of commands for simulating range expansions under different conditions. 
+Include the appropriate script according to the dimensionality of your required simulation and use its methods. For example, the *2d.jl* script includes a handful of commands for simulating range expansions in two dimensions.
 
 To run a simulation once, use one of the following methods: **rangeexp_axial**, **rangeexp_radial**. These output a fixed dictionary that includes statistics and expansion data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
 - **F** - **meanf** (deme-average fitness)
 - **P** - **pops** (deme populations)
-- **S** - **AAsel**, **Aasel** and **aasel** (deme-average number of homo- and heterozygous selected loci)
+- **S** - **AAsel**, **Aasel** and **aasel** (deme-average number of homo- [**AA**, **aa**] and heterozygous [**Aa**] selected loci)
 - **M** - **AAneu**, **Aaneu** and **aaneu** (deme-average number of homo- and heterozygous neutral loci)
 The above can be combined and should be passed in a string. For example,
 ```
-test = rangeexp_axial(15,30;data_to_generate="SF",y_max=5)
+test = rangeexp_axial(15, 30; data_to_generate="SF", y_max=5)
 ```
 will be a
 ```
@@ -36,7 +36,7 @@ Dict{String, Any} with 9 entries:
 
 This expansion data can be plotted and worked with. To plot expansion data, use the unique functions that start with *re_*. For example,
 ```
-re_heatmap_AAsel(test;log_factor=1.02)
+re_heatmap_AAsel(test; log_factor=1.02)
 ```
-will output
+will output the average number of selected homozygous mutant loci for in a deme:
 ![alt text](https://github.com/HartreeY/REK/blob/main/animations/readme0.gif?raw=true)

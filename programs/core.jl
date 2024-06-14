@@ -1,5 +1,8 @@
 using StatsBase, Distributions, Random, Plots, SpecialFunctions, Serialization, Dates
 
+# Constants
+# ------------------------------------------------
+
 # Plot configuration
 default(margin=6Plots.mm)
 
@@ -35,3 +38,22 @@ DEF_Y_MAX_EXP = DEF_Y_MAX
 DEF_N_GENS_EXP = 20
 DEF_MIGR_MODE = "4"
 DEF_DATA_TO_GENERATE = "FP"
+
+# Structures
+# ------------------------------------------------
+
+function get_migr_params(migr_mode)
+    if migr_mode == "4"
+        return (1,0)
+    elseif migr_mode == "buffon1"
+        return (2/pi,1/pi)
+    elseif migr_mode == "buffon2"
+        return (4/3/pi,1/3/pi)
+    elseif migr_mode == "buffon3"
+        return (0.4244132,0.21221)
+    elseif migr_mode == "8"
+        return (1/2,1/2)
+    elseif migr_mode == "1/2diag"
+        return (2/3,1/3)
+    end
+end
