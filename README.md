@@ -12,7 +12,7 @@ Once you have the required packages, you can use the annotated methods of this p
 Include the appropriate script according to the dimensionality of your required simulation and use its methods. For example, the *2d.jl* script includes a handful of commands for simulating range expansions in two dimensions.
 
 To run a simulation once, use one of the following methods: **rangeexp_axial**, **rangeexp_radial**. These output a fixed dictionary that includes statistics and expansion data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
-- **F** - **meanf** (deme-average fitness)
+- **F** - **fitn** (deme-average fitness)
 - **P** - **pops** (deme populations)
 - **S** - **AAsel**, **Aasel** and **aasel** (deme-average number of homo- [**AA**, **aa**] and heterozygous [**Aa**] selected loci)
 - **N** - **AAneu**, **Aaneu** and **aaneu** (deme-average number of homo- and heterozygous neutral loci)
@@ -27,7 +27,7 @@ Dict{String, Any} with 9 entries:
   "Aasel" => Float32[0.0 0.0 … 0.0 0.0; 0.0 0.0 … 0.0 0.0; … ; 0.0 0.0 … 0.0 0.…
   "aasel" => Float32[0.0 0.0 … 0.0 0.0; 25.0 25.0 … 0.0 25.0; … ; 0.0 0.0 … 0.0…
   "pops"  => NaN
-  "meanf" => Float32[-1.0 -1.0 … -1.0 -1.0; 0.05 0.05 … -1.0 0.05; … ; -1.0 -1.…
+  "fitn" => Float32[-1.0 -1.0 … -1.0 -1.0; 0.05 0.05 … -1.0 0.05; … ; -1.0 -1.…
   "aaneu" => NaN
   "Aaneu" => NaN
   "AAneu" => NaN
@@ -46,3 +46,12 @@ Here's an example of a longer axial simulation in 2D:
 test = rangeexp_axial_inf(100,1000;data_to_generate="FPSN",prop_of_sel_loci=0.8,y_max=8,migr_mode="diag1/2")
 ```
 ![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme1.gif?raw=true)
+
+# To-do
+
+- Add hexagonal worlds
+- Add more bottleneck options
+- Add the possibility for continuing (or stacking) range expansions
+- Add startfill regions of shapes other than rectangle
+- Add multiple-deme jumps in migration
+- Add an example for a two-sided 1D simulation
