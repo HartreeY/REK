@@ -9,16 +9,24 @@ To begin using this set of tools, you need to have Julia 1.9+ installed, along w
 Once you have the required packages, you can use the annotated methods of this package on your own, or you can follow one of several examples in the *programs* folder.
 
 ## Main use cases
-Include the appropriate script according to the dimensionality of your required simulation and use its methods. For example, the *2d.jl* script includes a handful of commands for simulating range expansions in two dimensions.
+Include the *resk.jl* script and use its methods.
 
-To run a simulation once, use one of the following methods: **rangeexp_axial**, **rangeexp_radial**. These output a fixed dictionary that includes statistics and expansion data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
+To run a simulation once, use `rangeexp` or the methods that start with `rangeexp`:
+
+- 1D: `rangeexp_1d`
+- 2D: `rangeexp_disk`,`rangeexp_strip`
+- 3D: `rangeexp_cylinder`,`rangeexp_sphere`.
+
+If no `wld` argument is provided, a world (= deme space) will be created, and the expansion will be run on it.
+
+The `rangeexp` functions output a fixed dictionary that includes statistics and expansion data. The types of data within it are determined by the *data_to_generate* argument. It can take on the following values:
 - **F** - **fitn** (deme-average fitness)
 - **P** - **pops** (deme populations)
 - **S** - **AAsel**, **Aasel** and **aasel** (deme-average number of homo- [**AA**, **aa**] and heterozygous [**Aa**] selected loci)
 - **N** - **AAneu**, **Aaneu** and **aaneu** (deme-average number of homo- and heterozygous neutral loci)
 The above can be combined and should be passed in a string. For example,
 ```
-test = rangeexp_axial(15, 30; data_to_generate="SF", y_max=5)
+test = rangeexp_strip(15, 30; data_to_generate="SF", y_max=5)
 ```
 will be a
 ```
@@ -55,3 +63,4 @@ test = rangeexp_axial_inf(100,1000;data_to_generate="FPSN",prop_of_sel_loci=0.8,
 - Add startfill regions of shapes other than rectangle
 - Add multiple-deme jumps in migration
 - Add an example for a two-sided 1D simulation
+- Add `rangeexp_rect` (rectangle) and `rangeexp_ppip` (parallelepiped)
