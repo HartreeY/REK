@@ -64,13 +64,3 @@ test = rangeexp_strip_inf(100,1000;data_to_generate="FPSN",prop_of_sel_loci=0.8,
 `rangeexp_sphere_inf`:
 
 ![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme3.gif?raw=true)
-
-# To-do
-
-- Add hexagonal worlds
-- Add more bottleneck options
-- Add the possibility for continuing (or stacking) range expansions
-- Add startfill regions of shapes other than rectangle
-- Add multiple-deme jumps in migration
-- Add an example for a two-sided 1D simulation
-- Add `rangeexp_rect` (rectangle) and `rangeexp_ppip` (parallelepiped)
