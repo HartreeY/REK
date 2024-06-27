@@ -57,9 +57,9 @@ test = rangeexp_axial_inf(100,1000;data_to_generate="FPSN",prop_of_sel_loci=0.8,
 
 Other examples:
 
-![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme3.mp4)
+![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme2.gif?raw=true)
 
-![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme4.mp4)
+![alt text](https://github.com/HartreeY/RESK/blob/main/animations/readme3.gif?raw=true)
 
 # To-do
 
